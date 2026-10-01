@@ -1,0 +1,12 @@
+/* =====================================================
+   FEATURES PAGE STYLES
+===================================================== */
+.features-page-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  color: #281507;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  padding-top: 50px;
+}

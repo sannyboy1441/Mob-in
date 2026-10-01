@@ -1,0 +1,832 @@
+/* =====================================================
+   CENTER AUTH MODAL - MOB'IN WARM HOME THEME
+===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+/* =====================================================
+   MODAL OVERLAY (CENTERED BACKDROP)
+===================================================== */
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(26, 16, 6, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.login-modal-overlay.fade-in {
+  animation: loginOverlayFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.login-modal-overlay.fade-out {
+  animation: loginOverlayFadeOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes loginOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loginOverlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* =====================================================
+   MODAL CARD (CENTERED BOX)
+===================================================== */
+.login-modal-card {
+  position: relative;
+  background: #ffffff;
+  width: 100%;
+  max-width: 470px;
+  max-height: min(92vh, 800px);
+  border-radius: 28px;
+  padding: 38px 38px 34px;
+  box-shadow:
+    0 24px 70px rgba(40, 21, 7, 0.32),
+    0 4px 16px rgba(40, 21, 7, 0.12),
+    0 0 0 1px rgba(104, 82, 38, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d8cbbf transparent;
+}
+
+.login-modal-card::-webkit-scrollbar {
+  width: 6px;
+}
+.login-modal-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+.login-modal-card::-webkit-scrollbar-thumb {
+  background: #d8cbbf;
+  border-radius: 9999px;
+}
+
+.login-modal-card.scale-in {
+  animation: loginCardPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.login-modal-card.scale-out {
+  animation: loginCardPopOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes loginCardPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes loginCardPopOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94) translateY(14px);
+  }
+}
+
+/* Top-right close button */
+.login-modal-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #ebdcd0;
+  background: #faf6f0;
+  color: #685226;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+}
+
+.login-modal-close-btn:hover {
+  background: #ede3d7;
+  color: #281507;
+  border-color: #dfcdbd;
+  transform: rotate(90deg) scale(1.05);
+}
+
+.login-modal-close-btn:active {
+  transform: rotate(90deg) scale(0.95);
+}
+
+.login-form-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.login-logo-wrap {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-brand-logo {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+}
+
+.login-heading {
+  margin: 0 0 6px;
+  color: #1a1006;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  text-align: center;
+}
+
+.login-subheading {
+  margin: 0 0 22px;
+  color: #6a5e54;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* =====================================================
+   TABS SWITCHER (CAPSULE)
+===================================================== */
+
+.login-tabs-capsule {
+  background: #f4ece3;
+  border: 1.5px solid #e8dcd0;
+  border-radius: 9999px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 28px;
+}
+
+.login-tab {
+  height: 42px;
+  border: none;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #6a5e54;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.login-tab:hover:not(.active) {
+  color: #281507;
+}
+
+.login-tab.active {
+  background: #685226;
+  background: linear-gradient(180deg, #745b2b 0%, #634d23 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(104, 82, 38, 0.3);
+}
+
+/* =====================================================
+   ALERTS
+===================================================== */
+
+.login-alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.login-alert.error {
+  background: #fdf2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.login-alert.success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+/* =====================================================
+   FORM FIELDS
+===================================================== */
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.login-field-group {
+  margin-bottom: 18px;
+}
+
+.login-field-group label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #281507;
+  margin-bottom: 7px;
+}
+
+.input-required-tag {
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 700;
+  font-style: normal;
+  margin-left: 4px;
+  line-height: 1;
+  display: inline-block;
+  animation: fadeInTag 0.2s ease-in-out;
+}
+
+@keyframes fadeInTag {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-wrapper.input-has-error input {
+  border-color: #f87171;
+  background-color: #fffaf9;
+}
+
+.login-input-wrapper.input-has-error input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.login-input-wrapper input {
+  width: 100%;
+  height: 48px;
+  border: 1.5px solid #e8dcd0;
+  border-radius: 9999px;
+  padding: 0 46px 0 20px;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: #281507;
+  background: #ffffff;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.login-input-wrapper input::placeholder {
+  color: #9d8f80;
+}
+
+.login-input-wrapper input:focus {
+  border-color: #685226;
+  box-shadow: 0 0 0 3px rgba(104, 82, 38, 0.14);
+}
+
+.login-input-icon {
+  position: absolute;
+  right: 18px;
+  pointer-events: none;
+  stroke: #8c7b6d;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+  background: rgba(104, 82, 38, 0.08);
+}
+
+.password-toggle-btn .login-input-icon {
+  position: static;
+  pointer-events: none;
+  stroke: #685226;
+}
+
+.password-toggle-btn:hover .login-input-icon {
+  stroke: #281507;
+}
+
+/* =====================================================
+   REMEMBER ME & FORGOT PASSWORD
+===================================================== */
+
+.login-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  font-size: 13.5px;
+}
+
+.remember-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #281507;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.remember-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #cfc2b4;
+  cursor: pointer;
+  accent-color: #685226;
+}
+
+.forgot-password-btn {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #685226;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13.5px;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-btn:hover {
+  color: #d99214;
+  text-decoration: underline;
+}
+
+/* =====================================================
+   SUBMIT BUTTON
+===================================================== */
+
+.login-submit-btn {
+  width: 100%;
+  height: 48px;
+  background: #685226;
+  background: linear-gradient(180deg, #745b2b 0%, #634d23 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 4px 14px rgba(104, 82, 38, 0.35);
+}
+
+.login-submit-btn:hover:not(:disabled) {
+  background: #56441d;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(104, 82, 38, 0.45);
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* =====================================================
+   DIVIDER
+===================================================== */
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e8dcd0;
+}
+
+.divider-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8c8075;
+  letter-spacing: 0.5px;
+}
+
+/* =====================================================
+   GOOGLE SIGN IN BUTTON
+===================================================== */
+
+.google-signin-btn {
+  width: 100%;
+  height: 48px;
+  background: #ffffff;
+  border: 1.5px solid #e8dcd0;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #281507;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.google-signin-btn:hover {
+  background: #fbf7f2;
+  border-color: #d8c7b8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(40, 21, 7, 0.06);
+}
+
+/* =====================================================
+   RESPONSIVE MODAL
+===================================================== */
+@media (max-width: 560px) {
+  .login-modal-overlay {
+    padding: 16px 12px;
+  }
+
+  .login-modal-card {
+    padding: 30px 20px 24px;
+    border-radius: 22px;
+    max-height: calc(100vh - 32px);
+  }
+
+  .login-modal-close-btn {
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .login-heading {
+    font-size: 22px;
+  }
+
+  .login-subheading {
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+}
+
+/* =====================================================
+   ROLE SELECTION POPUP MODAL (STEP 2 OF SIGNUP)
+===================================================== */
+.role-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100005;
+  background: rgba(26, 16, 6, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalFadeIn 0.25s ease forwards;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.role-modal-container {
+  position: relative;
+  background: #ffffff;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 28px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 24px 60px rgba(40, 21, 7, 0.28), 0 0 0 1px rgba(104, 82, 38, 0.1);
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.role-modal-close-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #fbf5ee;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #685226;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-modal-close-icon:hover {
+  background: #f3e5d4;
+  color: #281507;
+  transform: scale(1.05);
+}
+
+.role-modal-header-block {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.role-step-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #d99214;
+  background: #fff6e0;
+  border: 1px solid #fedfa4;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.role-modal-headline {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1006;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.role-modal-tagline {
+  font-size: 14px;
+  color: #6a5e54;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.role-cards-selection-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.role-option-card {
+  background: #ffffff;
+  border: 2px solid #ebe2d8;
+  border-radius: 20px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.role-option-card:hover {
+  transform: translateY(-4px);
+  border-color: #F9B71B;
+  box-shadow: 0 12px 30px rgba(249, 183, 27, 0.16);
+}
+
+.role-card-icon-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #fbf5ee;
+  border: 1px solid #ebdccb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #685226;
+  margin-bottom: 14px;
+  transition: transform 0.2s ease;
+}
+
+.role-option-card:hover .role-card-icon-badge {
+  background: #F9B71B;
+  color: #281507;
+  transform: scale(1.06);
+}
+
+.role-intent-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #685226;
+  background: #f6ecdc;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.role-card-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1006;
+  margin: 0 0 8px;
+}
+
+.role-card-description {
+  font-size: 12px;
+  color: #6a5e54;
+  line-height: 1.45;
+  margin: 0 0 20px;
+  flex-grow: 1;
+}
+
+.role-confirm-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-confirm-btn.landlord {
+  background: #685226;
+  color: #ffffff;
+}
+
+.role-confirm-btn.landlord:hover {
+  background: #54411c;
+}
+
+.role-confirm-btn.renter {
+  background: #F9B71B;
+  color: #281507;
+}
+
+.role-confirm-btn.renter:hover {
+  background: #e5a513;
+}
+
+.role-modal-bottom-bar {
+  text-align: center;
+}
+
+.role-back-link {
+  background: transparent;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #685226;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.role-back-link:hover {
+  color: #281507;
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .role-cards-selection-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =====================================================
+   OTP PASSWORD RESET MODAL STYLES
+===================================================== */
+.otp-modal-card {
+  max-width: 480px;
+}
+
+.otp-code-input {
+  letter-spacing: 6px;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  color: #685226;
+  font-family: monospace;
+}
+
+.otp-code-input::placeholder {
+  letter-spacing: 4px;
+  font-weight: normal;
+  color: #c7b8aa;
+}
+
+.otp-resend-row {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #73675c;
+}
+
+.otp-resend-btn {
+  background: transparent;
+  border: none;
+  color: #685226;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+
+.otp-resend-btn:hover {
+  color: #281507;
+}
+
+.otp-resend-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

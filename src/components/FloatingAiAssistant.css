@@ -1,0 +1,414 @@
+/* =====================================================
+   MOB'IN FLOATING AI ASSISTANT (CLOUDFLARE WORKERS AI)
+===================================================== */
+
+/* Floating Circular Button (Lower Right) */
+.mobin-ai-floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #ebd9c8;
+  box-shadow: 0 10px 28px rgba(40, 21, 7, 0.22), 0 3px 8px rgba(104, 99, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  padding: 0;
+}
+
+.mobin-ai-floating-btn:hover {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 14px 34px rgba(40, 21, 7, 0.28), 0 4px 12px rgba(104, 99, 0, 0.22);
+  border-color: #686300;
+}
+
+.mobin-ai-floating-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.mobin-ai-floating-btn.active {
+  background: #281507;
+  border-color: #281507;
+  color: #ffffff;
+}
+
+.mobin-ai-btn-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.mobin-ai-floating-btn:hover .mobin-ai-btn-logo {
+  transform: scale(1.08);
+}
+
+.mobin-ai-btn-close-icon {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.mobin-ai-floating-btn:hover .mobin-ai-btn-close-icon {
+  transform: rotate(90deg);
+}
+
+.mobin-ai-pulse-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 13px;
+  height: 13px;
+  background: #22c55e;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+  animation: mobinAiPulse 2s infinite;
+  z-index: 2;
+}
+
+@keyframes mobinAiPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+/* Chat Modal Container (Lower Right) */
+.mobin-ai-chat-window {
+  position: fixed;
+  bottom: 92px;
+  right: 24px;
+  z-index: 9999;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  height: 540px;
+  max-height: calc(100vh - 120px);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(40, 21, 7, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #ebd9c8;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: mobinAiSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@keyframes mobinAiSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Chat Header */
+.mobin-ai-header {
+  background: linear-gradient(135deg, #281507 0%, #442a15 100%);
+  color: #ffffff;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobin-ai-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobin-ai-avatar-badge {
+  width: 36px;
+  height: 36px;
+  background: #ffffff;
+  border: 1.5px solid #ebd9c8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.mobin-ai-header-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.mobin-ai-header-status {
+  font-size: 11px;
+  color: #eedcc6;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.mobin-ai-status-indicator {
+  width: 7px;
+  height: 7px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.mobin-ai-close-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #ffffff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.mobin-ai-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
+}
+
+/* Chat Body */
+.mobin-ai-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #faf8f5;
+}
+
+/* Messages */
+.mobin-ai-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 84%;
+  animation: mobinAiFadeIn 0.2s ease-out;
+}
+
+@keyframes mobinAiFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobin-ai-message.user {
+  align-self: flex-end;
+}
+
+.mobin-ai-message.assistant {
+  align-self: flex-start;
+}
+
+.mobin-ai-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.mobin-ai-message.user .mobin-ai-bubble {
+  background: #686300;
+  color: #ffffff;
+  border-bottom-right-radius: 3px;
+  box-shadow: 0 2px 6px rgba(104, 99, 0, 0.2);
+}
+
+.mobin-ai-message.assistant .mobin-ai-bubble {
+  background: #ffffff;
+  color: #281507;
+  border: 1px solid #eee5dc;
+  border-bottom-left-radius: 3px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+}
+
+.mobin-ai-timestamp {
+  font-size: 10px;
+  color: #9c9086;
+  margin-top: 3px;
+  padding: 0 4px;
+}
+
+.mobin-ai-message.user .mobin-ai-timestamp {
+  text-align: right;
+}
+
+/* Prompt Chips */
+.mobin-ai-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 10px 0;
+}
+
+.mobin-ai-suggestion-chip {
+  background: #ffffff;
+  border: 1px solid #ebd9c8;
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 12px;
+  color: #555100;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobin-ai-suggestion-chip:hover {
+  background: #fbf9f4;
+  border-color: #686300;
+  color: #281507;
+  transform: translateX(3px);
+}
+
+/* Typing Indicator */
+.mobin-ai-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #eee5dc;
+  border-radius: 14px;
+  width: fit-content;
+  align-self: flex-start;
+}
+
+.mobin-ai-typing-dot {
+  width: 6px;
+  height: 6px;
+  background: #8c8075;
+  border-radius: 50%;
+  animation: mobinAiTypingBounce 1.4s infinite ease-in-out both;
+}
+
+.mobin-ai-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.mobin-ai-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes mobinAiTypingBounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* Input Area */
+.mobin-ai-footer {
+  padding: 12px 14px;
+  background: #ffffff;
+  border-top: 1px solid #eee5dc;
+}
+
+.mobin-ai-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobin-ai-input {
+  flex: 1;
+  border: 1.5px solid #ebd9c8;
+  border-radius: 9999px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  color: #281507;
+  outline: none;
+  background: #faf8f5;
+  transition: all 0.15s ease;
+}
+
+.mobin-ai-input:focus {
+  border-color: #686300;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(104, 99, 0, 0.12);
+}
+
+.mobin-ai-input::placeholder {
+  color: #a4988d;
+}
+
+.mobin-ai-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #686300;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.mobin-ai-send-btn:hover:not(:disabled) {
+  background: #474300;
+  transform: scale(1.06);
+}
+
+.mobin-ai-send-btn:disabled {
+  background: #d8cec4;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mobin-ai-caption {
+  margin-top: 6px;
+  font-size: 10px;
+  text-align: center;
+  color: #a89d91;
+  font-weight: 500;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .mobin-ai-floating-btn {
+    bottom: 18px;
+    right: 18px;
+    height: 50px;
+    padding: 0 14px 0 10px;
+  }
+  .mobin-ai-chat-window {
+    bottom: 78px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    height: 480px;
+  }
+}
