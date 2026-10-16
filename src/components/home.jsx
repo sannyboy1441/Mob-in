@@ -49,9 +49,6 @@ export default function Home({
   const renterTrackRef = useRef(null);
   const landlordTrackRef = useRef(null);
 
-  // Dynamic pill compression during scroll
-  const [isScrolling, setIsScrolling] = useState(false);
-  const scrollStopTimerRef = useRef(null);
 
   const handleRenterArrowClick = () => {
     setActiveRenterStep((prev) => {
@@ -113,28 +110,10 @@ export default function Home({
     }
   }, [initialSection, onClearInitialSection]);
 
-  // SCROLLSPY & DYNAMIC COMPRESSION ON SCROLL
+  // SCROLLSPY
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
-
-      // Compress navbar into center logo pill while scrolling up/down
-      if (currentY > 20) {
-        setIsScrolling(true);
-      } else {
-        setIsScrolling(false);
-      }
-
-      // Reset debounce timer to expand back to normal when scrolling stops
-      if (scrollStopTimerRef.current) {
-        clearTimeout(scrollStopTimerRef.current);
-      }
-
-      scrollStopTimerRef.current = setTimeout(() => {
-        setIsScrolling(false);
-      }, 360);
-
-      // Scrollspy logic
       const scrollPos = currentY + 160;
 
       const contactSection = document.getElementById("contact");
@@ -162,7 +141,6 @@ export default function Home({
     handleScroll();
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (scrollStopTimerRef.current) clearTimeout(scrollStopTimerRef.current);
     };
   }, []);
 
@@ -312,7 +290,7 @@ export default function Home({
           FLOATING WHITE PILL NAVBAR (MATCHING SCREENSHOT 1 & 2)
       ===================================================== */}
       <div className="floating-navbar-wrapper">
-        <nav className={`floating-pill-navbar ${isScrolling ? "is-scrolling-compressed" : ""}`}>
+        <nav className="floating-pill-navbar">
           {/* BRAND LOGO */}
           <div className="pill-navbar-logo" onClick={() => handleNavClick("Home")}>
             <img src={mobinLogo} alt="Mob'in" className="pill-navbar-logo-img" />
