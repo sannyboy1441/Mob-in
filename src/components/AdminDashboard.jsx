@@ -5337,24 +5337,17 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                             <button
                               type="button"
                               className="admin-btn-outline"
-                              style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 700, color: "#1e40af", borderColor: "#bfdbfe", background: "#eff6ff" }}
+                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
                               onClick={() => {
-                                setOverrideModalSub(sub);
-                                setOverrideForm({
-                                  newStatus: sub.status === "Grace Period" ? "Active" : sub.status,
-                                  extensionDays: 30,
-                                  reason: "",
-                                });
+                                showNotice(
+                                  "Confirm +30 Days Extension",
+                                  `Are you sure you want to grant a +30 days free subscription extension to ${sub.landlordName} (${sub.email})?`,
+                                  "warning",
+                                  () => handleGrantDays(sub.id, 30),
+                                  "Confirm +30 Days",
+                                  "Cancel"
+                                );
                               }}
-                              title="Issue Manual Override / Extension"
-                            >
-                              Override
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-btn-outline"
-                              style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 600 }}
-                              onClick={() => handleGrantDays(sub.id, 30)}
                               title="Grant +30 Days Free"
                             >
                               +30d
@@ -5362,17 +5355,17 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                             <button
                               type="button"
                               className="admin-btn-outline"
-                              style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 600 }}
-                              onClick={() => handleCompAccount(sub.id)}
-                              title="Comp as Free Partner"
-                            >
-                              Comp
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-btn-outline"
-                              style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 600, color: "#8c5310" }}
-                              onClick={() => handleSendReminder(sub.email)}
+                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600, color: "#8c5310", borderColor: "#fde68a", background: "#fffbeb" }}
+                              onClick={() => {
+                                showNotice(
+                                  "Confirm Payment Reminder",
+                                  `Are you sure you want to dispatch a payment and renewal invoice reminder to ${sub.landlordName} (${sub.email})?`,
+                                  "info",
+                                  () => handleSendReminder(sub.email),
+                                  "Send Reminder",
+                                  "Cancel"
+                                );
+                              }}
                               title="Send Reminder Email"
                             >
                               Remind
