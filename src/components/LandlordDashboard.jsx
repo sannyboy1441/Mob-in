@@ -1070,7 +1070,7 @@ export default function LandlordDashboard({ user, onLogout, onHomeClick, onUpdat
     return notifs;
   }, [dashboardProperties, dashboardInquiries, payments, landlordReports, readLandlordNotifs]);
 
-  const handleLandlordNotifClick = (item) => {
+  const handleLandlordNotifClick = (item, shouldNavigate = true) => {
     if (!item) return;
     if (!readLandlordNotifs.includes(item.id)) {
       const updated = [...readLandlordNotifs, item.id];
@@ -1079,7 +1079,7 @@ export default function LandlordDashboard({ user, onLogout, onHomeClick, onUpdat
         localStorage.setItem(`mobin_read_notifs_${user?.email || "landlord"}`, JSON.stringify(updated));
       } catch (_) {}
     }
-    if (item.linkTab) {
+    if (shouldNavigate && item.linkTab && activeTab !== "Notifications") {
       setActiveTab(item.linkTab);
     }
   };
@@ -1170,6 +1170,7 @@ export default function LandlordDashboard({ user, onLogout, onHomeClick, onUpdat
               <NotificationPopover
                 items={landlordNotifications}
                 onNotificationSelect={handleLandlordNotifClick}
+                onMarkAllAsRead={handleMarkAllLandlordNotifsRead}
               />
 
               {/* USER AVATAR DROPDOWN */}
@@ -1807,10 +1808,10 @@ export default function LandlordDashboard({ user, onLogout, onHomeClick, onUpdat
               {/* CATEGORY FILTER PILLS */}
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
                 {[
-                  { id: "All", label: "All Alerts", count: landlordNotifications.length },
-                  { id: "Inquiries", label: "Tenant Inquiries", count: landlordNotifications.filter((n) => n.type === "Inquiries").length },
-                  { id: "Verification", label: "Verifications", count: landlordNotifications.filter((n) => n.type === "Verification").length },
-                  { id: "Billing", label: "Billing & Plans", count: landlordNotifications.filter((n) => n.type === "Billing").length },
+                  { id: "All", label: "All Alerts", count: landlordNotifications.filter((n) => n.unread).length },
+                  { id: "Inquiries", label: "Tenant Inquiries", count: landlordNotifications.filter((n) => n.type === "Inquiries" && n.unread).length },
+                  { id: "Verification", label: "Verifications", count: landlordNotifications.filter((n) => n.type === "Verification" && n.unread).length },
+                  { id: "Billing", label: "Billing & Plans", count: landlordNotifications.filter((n) => n.type === "Billing" && n.unread).length },
                 ].map((tab) => (
                   <button
                     key={tab.id}

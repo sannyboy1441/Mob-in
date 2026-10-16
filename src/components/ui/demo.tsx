@@ -91,16 +91,17 @@ function Dot({ className }: { className?: string }) {
 interface ComponentProps {
   items?: NotificationItem[];
   onNotificationSelect?: (item: NotificationItem) => void;
+  onMarkAllAsRead?: () => void;
   trigger?: React.ReactNode;
 }
 
-function Component({ items, onNotificationSelect, trigger }: ComponentProps = {}) {
+function Component({ items, onNotificationSelect, onMarkAllAsRead, trigger }: ComponentProps = {}) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(
     items && items.length > 0 ? items : defaultNotifications
   );
 
   useEffect(() => {
-    if (items && items.length > 0) {
+    if (items !== undefined) {
       setNotifications(items);
     }
   }, [items]);
@@ -114,17 +115,20 @@ function Component({ items, onNotificationSelect, trigger }: ComponentProps = {}
         unread: false,
       })),
     );
+    if (onMarkAllAsRead) {
+      onMarkAllAsRead();
+    }
   };
 
   const handleNotificationClick = (id: number | string) => {
     const targetItem = notifications.find((n) => n.id === id);
-    setNotifications(
-      notifications.map((notification) =>
+    setNotifications((prev) =>
+      prev.map((notification) =>
         notification.id === id ? { ...notification, unread: false } : notification,
       ),
     );
     if (targetItem && onNotificationSelect) {
-      onNotificationSelect(targetItem);
+      onNotificationSelect({ ...targetItem, unread: false });
     }
   };
 
@@ -170,22 +174,26 @@ function Component({ items, onNotificationSelect, trigger }: ComponentProps = {}
             notifications.map((notification) => (
               <div
                 key={notification.id}
+                onClick={() => handleNotificationClick(notification.id)}
                 className={`rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent cursor-pointer ${
-                  notification.unread ? "bg-accent/40" : ""
+                  notification.unread ? "bg-accent/40 font-medium" : "opacity-80"
                 }`}
               >
                 <div className="relative flex items-start pe-3">
                   <div className="flex-1 space-y-1">
                     <button
                       type="button"
-                      className="text-left text-foreground/80 after:absolute after:inset-0 cursor-pointer"
-                      onClick={() => handleNotificationClick(notification.id)}
+                      className="text-left text-foreground/90 cursor-pointer w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNotificationClick(notification.id);
+                      }}
                     >
-                      <span className="font-medium text-foreground hover:underline">
+                      <span className="font-semibold text-foreground hover:underline">
                         {notification.user}
                       </span>{" "}
                       {notification.action}{" "}
-                      <span className="font-medium text-foreground hover:underline">
+                      <span className="font-semibold text-foreground hover:underline">
                         {notification.target}
                       </span>
                       .

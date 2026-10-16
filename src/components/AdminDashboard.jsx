@@ -2867,7 +2867,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
     return notifs;
   }, [adminProperties, reports, financialTransactions, adminUsers, readAdminNotifs]);
 
-  const handleAdminNotifClick = (item) => {
+  const handleAdminNotifClick = (item, shouldNavigate = true) => {
     if (!item) return;
     if (!readAdminNotifs.includes(item.id)) {
       const updated = [...readAdminNotifs, item.id];
@@ -2876,7 +2876,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
         localStorage.setItem("mobin_read_admin_notifs", JSON.stringify(updated));
       } catch (_) {}
     }
-    if (item.linkTab) {
+    if (shouldNavigate && item.linkTab && activeTab !== "Notifications") {
       setActiveTab(item.linkTab);
     }
   };
@@ -3151,6 +3151,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
             <NotificationPopover
               items={adminNotifications}
               onNotificationSelect={handleAdminNotifClick}
+              onMarkAllAsRead={handleMarkAllAdminNotifsRead}
             />
 
             {/* ADMIN AVATAR DROPDOWN (SAME AS LANDLORD) */}
@@ -7141,11 +7142,11 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                 {/* CATEGORY FILTER CHIPS */}
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "16px 0", borderBottom: "1px solid #f3ece5" }}>
                   {[
-                    { id: "All", label: "All Alerts", count: adminNotifications.length },
-                    { id: "Verification", label: "Verifications", count: adminNotifications.filter((n) => n.type === "Verification").length },
-                    { id: "Financials", label: "Payments", count: adminNotifications.filter((n) => n.type === "Financials").length },
-                    { id: "Reported Listings", label: "Reports", count: adminNotifications.filter((n) => n.type === "Reported Listings").length },
-                    { id: "Users", label: "Users", count: adminNotifications.filter((n) => n.type === "Users").length },
+                    { id: "All", label: "All Alerts", count: adminNotifications.filter((n) => n.unread).length },
+                    { id: "Verification", label: "Verifications", count: adminNotifications.filter((n) => n.type === "Verification" && n.unread).length },
+                    { id: "Financials", label: "Payments", count: adminNotifications.filter((n) => n.type === "Financials" && n.unread).length },
+                    { id: "Reported Listings", label: "Reports", count: adminNotifications.filter((n) => n.type === "Reported Listings" && n.unread).length },
+                    { id: "Users", label: "Users", count: adminNotifications.filter((n) => n.type === "Users" && n.unread).length },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -7189,7 +7190,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                     filteredNotifs.map((n) => (
                       <div
                         key={n.id}
-                        onClick={() => handleAdminNotifClick(n)}
+                        onClick={() => handleAdminNotifClick(n, false)}
                         style={{
                           display: "flex",
                           alignItems: "flex-start",
@@ -7240,9 +7241,25 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                           {n.unread && (
                             <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#eab308" }} title="Unread" />
                           )}
-                          <span style={{ fontSize: "12px", color: "#686300", fontWeight: 700 }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAdminNotifClick(n, true);
+                              if (n.linkTab) setActiveTab(n.linkTab);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: "4px 8px",
+                              cursor: "pointer",
+                              fontSize: "12px",
+                              color: "#686300",
+                              fontWeight: 700,
+                            }}
+                          >
                             View →
-                          </span>
+                          </button>
                         </div>
                       </div>
                     ))
