@@ -5397,63 +5397,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
               )}
             </div>
 
-            {/* =====================================================
-                IMMUTABLE SUBSCRIPTION AUDIT TRAIL LOGS
-            ===================================================== */}
-            <div className="admin-card" style={{ marginTop: "28px" }}>
-              <div className="admin-card-header" style={{ flexWrap: "wrap", gap: "12px" }}>
-                <div>
-                  <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#281507", margin: "0 0 4px 0" }}>
-                    Subscription Override &amp; Compliance Audit Trail ({auditLogsList.length})
-                  </h2>
-                  <p style={{ color: "#73675c", fontSize: "13px", margin: 0 }}>
-                    Immutable historical records of status transitions, manual extensions, and required administrative rationale.
-                  </p>
-                </div>
-              </div>
 
-              <div className="admin-table-wrap" style={{ marginTop: "14px", overflowX: "auto" }}>
-                <table className="admin-data-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                  <thead>
-                    <tr style={{ background: "#fcf8f4", borderBottom: "1.5px solid #ebdcd0" }}>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: "11.5px", color: "#7a6e63" }}>TIMESTAMP</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: "11.5px", color: "#7a6e63" }}>ADMIN OPERATOR</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: "11.5px", color: "#7a6e63" }}>TARGET ACCOUNT</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: "11.5px", color: "#7a6e63" }}>TRANSITION</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: "11.5px", color: "#7a6e63" }}>MANDATORY REASON / RATIONALE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedAuditLogs.map((log) => (
-                      <tr key={log.id} style={{ borderBottom: "1px solid #f3ece5" }}>
-                        <td style={{ padding: "10px 12px", color: "#6a5e54", whiteSpace: "nowrap" }}>{log.timestamp}</td>
-                        <td style={{ padding: "10px 12px", fontWeight: 600, color: "#281507" }}>{log.admin}</td>
-                        <td style={{ padding: "10px 12px", color: "#4a3e33" }}>{log.target}</td>
-                        <td style={{ padding: "10px 12px" }}>
-                          <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", background: "#f1f5f9", borderRadius: "4px", color: "#334155" }}>
-                            {log.prevStatus} → {log.newStatus}
-                          </span>
-                        </td>
-                        <td style={{ padding: "10px 12px", color: "#3b3026", fontStyle: "italic" }}>
-                          "{log.reason}"
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* AUDIT TRAIL PAGINATION */}
-              {auditLogsList.length > 0 && (
-                <TablePagination
-                  currentPage={auditPage}
-                  totalItems={auditLogsList.length}
-                  pageSize={auditPageSize}
-                  onPageChange={setAuditPage}
-                  onPageSizeChange={setAuditPageSize}
-                />
-              )}
-            </div>
 
             {/* =====================================================
                 ADMIN OVERRIDE / GRACE EXTENSION MODAL
