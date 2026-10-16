@@ -190,13 +190,6 @@ export default function HowItWorks({ onHomeClick, onNavigate }) {
             >
               Login
             </button>
-            <button
-              type="button"
-              className="pill-register-btn"
-              onClick={() => onNavigate && onNavigate("register")}
-            >
-              Register Now
-            </button>
           </div>
         </nav>
       </div>

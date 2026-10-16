@@ -374,16 +374,6 @@ export default function Home({
                 >
                   Login
                 </button>
-                <button
-                  type="button"
-                  className="pill-register-btn"
-                  onClick={() => {
-                    if (onNavigate) onNavigate("register");
-                    else if (onDashboardClick) onDashboardClick();
-                  }}
-                >
-                  Register Now
-                </button>
               </>
             )}
           </div>
@@ -726,15 +716,9 @@ export default function Home({
               </div>
               <h4>Landlord Onboarding</h4>
               <p>Need assistance verifying your property?</p>
-              <button
-                type="button"
-                className="contact-card-btn"
-                onClick={() => {
-                  if (onNavigate) onNavigate("register");
-                }}
-              >
-                Register as Landlord
-              </button>
+              <a href="mailto:support@mobin.ph" className="contact-card-link">
+                Contact onboarding team
+              </a>
             </div>
           </div>
         </div>
