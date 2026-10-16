@@ -2349,49 +2349,158 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
   const [editingPlan, setEditingPlan] = useState(null);
   const [newFeatureText, setNewFeatureText] = useState("");
 
+  // Derive real-time subscribed landlords list from actual payments, users, properties, and local cache
+  const deriveActualSubscribers = useCallback(() => {
+    const subscribersMap = new Map();
+
+    // 1. Check local cached landlord subscriptions (mobin_landlord_subscriptions)
+    try {
+      const cached = JSON.parse(localStorage.getItem("mobin_landlord_subscriptions") || "[]");
+      if (Array.isArray(cached)) {
+        cached.forEach((cs) => {
+          const email = (cs.landlordEmail || cs.landlord_email || "").trim().toLowerCase();
+          if (!email) return;
+          const name = cs.landlordName || cs.landlord_name || (email === "landlord@mobin.ph" ? "Sarah Jenkins" : email.split("@")[0]);
+          const planName = cs.plan?.name || cs.tier || "Landlord Plan";
+          const periodEnd = cs.currentPeriodEnd ? new Date(cs.currentPeriodEnd) : null;
+          let nextBillingStr = periodEnd && !isNaN(periodEnd.getTime())
+            ? periodEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+            : "Next Cycle";
+
+          subscribersMap.set(email, {
+            id: `sub-${email}`,
+            landlordName: name,
+            email: cs.landlordEmail || cs.landlord_email || email,
+            tier: planName,
+            status: cs.status || "Active",
+            nextBilling: nextBillingStr,
+            channel: (cs.paymentChannel || "GCash").toUpperCase(),
+            totalPaid: "₱0.00",
+            rawTotalPaid: 0,
+            latestDate: cs.currentPeriodStart ? new Date(cs.currentPeriodStart) : new Date(0),
+          });
+        });
+      }
+    } catch (_) {}
+
+    // 2. Aggregate from financialTransactions (synced directly with Supabase 'payments')
+    if (Array.isArray(financialTransactions)) {
+      financialTransactions.forEach((tx) => {
+        const email = (tx.payerEmail || "").trim().toLowerCase();
+        if (!email) return;
+
+        const itemStr = (tx.item || "").toLowerCase();
+        const isLandlordSub =
+          tx.role === "Landlord" ||
+          itemStr.includes("landlord") ||
+          itemStr.includes("property") ||
+          itemStr.includes("subscription") ||
+          itemStr.includes("yawa") ||
+          itemStr.includes("tier") ||
+          itemStr.includes("pro") ||
+          email.includes("landlord");
+
+        // Exclude student inquiry / booking passes
+        if (!isLandlordSub && itemStr.includes("pass") && tx.amount < 150) return;
+        if (!isLandlordSub && tx.role !== "Landlord") return;
+
+        const amt = Number(tx.amount || 0);
+        const isPaid = tx.status === "Completed" || tx.status === "Paid";
+        const txDate = tx.rawDate ? new Date(tx.rawDate) : (tx.date ? new Date(tx.date) : new Date());
+
+        let cleanTier = (tx.item || "Landlord Starter").replace(/\s*Subscription\s*/i, "").trim();
+        let channel = tx.gateway || "GCash";
+        if (channel.toLowerCase().includes("maya")) channel = "Maya";
+        else if (channel.toLowerCase().includes("gcash")) channel = "GCash";
+        else if (channel.toLowerCase().includes("visa") || channel.toLowerCase().includes("card")) channel = "Visa";
+
+        // Determine next billing date (30 days from payment date)
+        let nextBilling = "Active";
+        let status = isPaid ? "Active" : (tx.status || "Pending");
+        if (!isNaN(txDate.getTime())) {
+          const nextDate = new Date(txDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const now = new Date();
+          const diffDays = Math.ceil((nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays < 0) {
+            nextBilling = `Overdue (${Math.abs(diffDays)} days)`;
+            status = Math.abs(diffDays) <= 7 ? "Grace Period" : "Expired";
+          } else {
+            nextBilling = nextDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          }
+        }
+
+        if (!subscribersMap.has(email)) {
+          const matchedUser = (adminUsers || []).find((u) => (u.email || "").toLowerCase() === email);
+          const matchedProp = (adminProperties || []).find((p) => (p.landlord_email || "").toLowerCase() === email);
+          const customName = typeof window !== "undefined" ? localStorage.getItem("mobin_landlord_custom_name") : null;
+          let displayName = tx.payerName || matchedUser?.name || matchedProp?.landlord_name;
+          if (email === "landlord@mobin.ph") {
+            displayName = customName || matchedProp?.landlord_name || "Sarah Jenkins";
+          } else if (email === "admin@mobin.ph") {
+            displayName = "Mob'in Platform Admin";
+          } else if (!displayName || displayName === "Verified Customer") {
+            const prefix = email.split("@")[0].replace(/[._-]/g, " ");
+            displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+          }
+
+          subscribersMap.set(email, {
+            id: `sub-${email}`,
+            landlordName: displayName,
+            email: tx.payerEmail || email,
+            tier: cleanTier,
+            status,
+            nextBilling,
+            channel,
+            totalPaid: "₱0.00",
+            rawTotalPaid: isPaid ? amt : 0,
+            latestDate: txDate,
+          });
+        } else {
+          const existing = subscribersMap.get(email);
+          if (isPaid) {
+            existing.rawTotalPaid += amt;
+          }
+          if (txDate > (existing.latestDate || new Date(0))) {
+            existing.latestDate = txDate;
+            existing.tier = cleanTier || existing.tier;
+            existing.channel = channel || existing.channel;
+            existing.nextBilling = nextBilling;
+            existing.status = status;
+          }
+        }
+      });
+    }
+
+    // 3. Apply custom admin overrides (e.g. from +30d extensions)
+    try {
+      const overrides = JSON.parse(localStorage.getItem("mobin_subscriber_overrides") || "{}");
+      subscribersMap.forEach((sub, email) => {
+        if (overrides[email]) {
+          const ov = overrides[email];
+          if (ov.status) sub.status = ov.status;
+          if (ov.nextBilling) sub.nextBilling = ov.nextBilling;
+          if (ov.tier) sub.tier = ov.tier;
+        }
+      });
+    } catch (_) {}
+
+    return Array.from(subscribersMap.values()).map((sub) => ({
+      ...sub,
+      totalPaid: `₱${(sub.rawTotalPaid || 0).toLocaleString("en-PH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+    }));
+  }, [financialTransactions, adminUsers, adminProperties]);
+
   // Landlord Subscribers state with real-time override controls
-  const [subscribersList, setSubscribersList] = useState([
-    {
-      id: "sub-1",
-      landlordName: "Sarah Jenkins",
-      email: "sarah.jenkins@dorms.ph",
-      tier: "Landlord Portfolio (5)",
-      status: "Active",
-      nextBilling: "Nov 15, 2024",
-      totalPaid: "₱3,594.00",
-      channel: "GCash",
-    },
-    {
-      id: "sub-2",
-      landlordName: "John Santos",
-      email: "john.santos@gmail.com",
-      tier: "Landlord Starter (1)",
-      status: "Grace Period",
-      nextBilling: "Overdue (3 days)",
-      totalPaid: "₱897.00",
-      channel: "GCash",
-    },
-    {
-      id: "sub-3",
-      landlordName: "Urban Estates Corp.",
-      email: "urban.estates@properties.ph",
-      tier: "Dorm & Complex Operator (25)",
-      status: "Active",
-      nextBilling: "Dec 01, 2024",
-      totalPaid: "₱7,794.00",
-      channel: "Visa •••• 9912",
-    },
-    {
-      id: "sub-4",
-      landlordName: "Maria Clara Dormitories",
-      email: "maria.clara@dorms.ph",
-      tier: "Landlord Starter (1)",
-      status: "Free Trial",
-      nextBilling: "Oct 28, 2024",
-      totalPaid: "₱0.00",
-      channel: "Maya",
-    },
-  ]);
+  const [subscribersList, setSubscribersList] = useState(() => deriveActualSubscribers());
+
+  // Keep subscribersList synced with financial transactions & users
+  useEffect(() => {
+    const list = deriveActualSubscribers();
+    setSubscribersList(list);
+  }, [deriveActualSubscribers]);
 
   // Admin Override Modal & Audit Trail State
   const [overrideModalSub, setOverrideModalSub] = useState(null);
@@ -2436,40 +2545,85 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
 
   const handleGrantDays = (subId, days = 30) => {
     const targetSub = subscribersList.find((s) => s.id === subId);
+    if (!targetSub) return;
+
+    let newNextBilling = `Extended (+${days} Days)`;
+    if (targetSub.nextBilling && !targetSub.nextBilling.includes("Extended") && !targetSub.nextBilling.includes("Overdue")) {
+      const parsed = new Date(targetSub.nextBilling);
+      if (!isNaN(parsed.getTime())) {
+        const extDate = new Date(parsed.getTime() + days * 24 * 60 * 60 * 1000);
+        newNextBilling = extDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      }
+    }
+
+    try {
+      const overrides = JSON.parse(localStorage.getItem("mobin_subscriber_overrides") || "{}");
+      overrides[targetSub.email.toLowerCase()] = {
+        status: "Active",
+        nextBilling: newNextBilling,
+        extendedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("mobin_subscriber_overrides", JSON.stringify(overrides));
+    } catch (_) {}
+
     setSubscribersList((prev) =>
       prev.map((sub) =>
         sub.id === subId
           ? {
               ...sub,
               status: "Active",
-              nextBilling: `Extended (+${days} Days)`,
+              nextBilling: newNextBilling,
             }
           : sub
       )
     );
 
     // Record audit trail
-    if (targetSub) {
-      setAuditLogsList((prev) => [
-        {
-          id: "log-" + Date.now(),
-          admin: user?.email || "Super Admin (admin@mobin.ph)",
-          target: `${targetSub.landlordName} (${targetSub.email})`,
-          action: `Grant +${days}d Free`,
-          prevStatus: targetSub.status,
-          newStatus: "Active",
-          reason: `Admin granted +${days} days free extension`,
-          timestamp: new Date().toLocaleString(),
-        },
-        ...prev,
-      ]);
-    }
+    setAuditLogsList((prev) => [
+      {
+        id: "log-" + Date.now(),
+        admin: user?.email || "Super Admin (admin@mobin.ph)",
+        target: `${targetSub.landlordName} (${targetSub.email})`,
+        action: `Grant +${days}d Free`,
+        prevStatus: targetSub.status,
+        newStatus: "Active",
+        reason: `Admin granted +${days} days free extension`,
+        timestamp: new Date().toLocaleString(),
+      },
+      ...prev,
+    ]);
 
     showNotice(
       "Free Days Granted",
-      `Granted +${days} Free Days to landlord! Subscription extended successfully.`,
+      `Granted +${days} Free Days to ${targetSub.landlordName} (${targetSub.email})! Subscription extended successfully.`,
       "success"
     );
+  };
+
+  const handleExportSubscribersCsv = () => {
+    if (!subscribersList || subscribersList.length === 0) {
+      showNotice("No Subscribers", "There are currently no subscribers to export.", "warning");
+      return;
+    }
+    const headers = ["Landlord Name", "Email", "Current Tier", "Status", "Next Billing", "Channel", "Total Paid"];
+    const rows = subscribersList.map((s) => [
+      `"${(s.landlordName || "").replace(/"/g, '""')}"`,
+      `"${(s.email || "").replace(/"/g, '""')}"`,
+      `"${(s.tier || "").replace(/"/g, '""')}"`,
+      `"${(s.status || "").replace(/"/g, '""')}"`,
+      `"${(s.nextBilling || "").replace(/"/g, '""')}"`,
+      `"${(s.channel || "").replace(/"/g, '""')}"`,
+      `"${(s.totalPaid || "").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `mobin_subscribers_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showNotice("Subscribers Exported", `Successfully exported ${subscribersList.length} subscriber records to CSV.`, "success");
   };
 
   const handleCompAccount = (subId) => {
@@ -5271,7 +5425,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                 <button
                   type="button"
                   className="admin-btn-outline"
-                  onClick={() => showNotice("Export Subscribers", "Landlord subscribers list exported successfully to CSV.", "success")}
+                  onClick={handleExportSubscribersCsv}
                 >
                   📥 Export Subscribers CSV
                 </button>
@@ -5291,89 +5445,97 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedSubscribers.map((sub) => (
-                      <tr key={sub.id} style={{ borderBottom: "1px solid #f3ece5" }}>
-                        <td style={{ padding: "12px 14px" }}>
-                          <strong style={{ display: "block", color: "#1a1006" }}>{sub.landlordName}</strong>
-                          <span style={{ fontSize: "12px", color: "#7a6e63" }}>{sub.email}</span>
-                        </td>
-                        <td style={{ padding: "12px 14px", fontWeight: 600, color: "#555100" }}>{sub.tier}</td>
-                        <td style={{ padding: "12px 14px" }}>
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "3px 10px",
-                              borderRadius: "9999px",
-                              fontSize: "11.5px",
-                              fontWeight: 700,
-                              background:
-                                sub.status === "Active"
-                                  ? "#eef7ed"
-                                  : sub.status === "Grace Period"
-                                  ? "#fef3c7"
-                                  : sub.status === "Free Trial"
-                                  ? "#eff6ff"
-                                  : "#f3e8ff",
-                              color:
-                                sub.status === "Active"
-                                  ? "#15803d"
-                                  : sub.status === "Grace Period"
-                                  ? "#b45309"
-                                  : sub.status === "Free Trial"
-                                  ? "#1d4ed8"
-                                  : "#6b21a8",
-                            }}
-                          >
-                            {sub.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 14px", color: sub.nextBilling.includes("Overdue") ? "#dc2626" : "#4a3e33" }}>
-                          {sub.nextBilling}
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#6a5e54" }}>{sub.channel}</td>
-                        <td style={{ padding: "12px 14px", fontWeight: 700, color: "#1a1006" }}>{sub.totalPaid}</td>
-                        <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                          <div style={{ display: "inline-flex", gap: "6px" }}>
-                            <button
-                              type="button"
-                              className="admin-btn-outline"
-                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
-                              onClick={() => {
-                                showNotice(
-                                  "Confirm +30 Days Extension",
-                                  `Are you sure you want to grant a +30 days free subscription extension to ${sub.landlordName} (${sub.email})?`,
-                                  "warning",
-                                  () => handleGrantDays(sub.id, 30),
-                                  "Confirm +30 Days",
-                                  "Cancel"
-                                );
-                              }}
-                              title="Grant +30 Days Free"
-                            >
-                              +30d
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-btn-outline"
-                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600, color: "#8c5310", borderColor: "#fde68a", background: "#fffbeb" }}
-                              onClick={() => {
-                                showNotice(
-                                  "Confirm Payment Reminder",
-                                  `Are you sure you want to dispatch a payment and renewal invoice reminder to ${sub.landlordName} (${sub.email})?`,
-                                  "info",
-                                  () => handleSendReminder(sub.email),
-                                  "Send Reminder",
-                                  "Cancel"
-                                );
-                              }}
-                              title="Send Reminder Email"
-                            >
-                              Remind
-                            </button>
-                          </div>
+                    {paginatedSubscribers.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" style={{ padding: "36px 14px", textAlign: "center", color: "#7a6e63" }}>
+                          No subscribed landlords found yet.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      paginatedSubscribers.map((sub) => (
+                        <tr key={sub.id} style={{ borderBottom: "1px solid #f3ece5" }}>
+                          <td style={{ padding: "12px 14px" }}>
+                            <strong style={{ display: "block", color: "#1a1006" }}>{sub.landlordName}</strong>
+                            <span style={{ fontSize: "12px", color: "#7a6e63" }}>{sub.email}</span>
+                          </td>
+                          <td style={{ padding: "12px 14px", fontWeight: 600, color: "#555100" }}>{sub.tier}</td>
+                          <td style={{ padding: "12px 14px" }}>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "3px 10px",
+                                borderRadius: "9999px",
+                                fontSize: "11.5px",
+                                fontWeight: 700,
+                                background:
+                                  sub.status === "Active"
+                                    ? "#eef7ed"
+                                    : sub.status === "Grace Period"
+                                    ? "#fef3c7"
+                                    : sub.status === "Free Trial"
+                                    ? "#eff6ff"
+                                    : "#f3e8ff",
+                                color:
+                                  sub.status === "Active"
+                                    ? "#15803d"
+                                    : sub.status === "Grace Period"
+                                    ? "#b45309"
+                                    : sub.status === "Free Trial"
+                                    ? "#1d4ed8"
+                                    : "#6b21a8",
+                              }}
+                            >
+                              {sub.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 14px", color: (sub.nextBilling || "").includes("Overdue") ? "#dc2626" : "#4a3e33" }}>
+                            {sub.nextBilling || "Active"}
+                          </td>
+                          <td style={{ padding: "12px 14px", color: "#6a5e54" }}>{sub.channel}</td>
+                          <td style={{ padding: "12px 14px", fontWeight: 700, color: "#1a1006" }}>{sub.totalPaid}</td>
+                          <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                            <div style={{ display: "inline-flex", gap: "6px" }}>
+                              <button
+                                type="button"
+                                className="admin-btn-outline"
+                                style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
+                                onClick={() => {
+                                  showNotice(
+                                    "Confirm +30 Days Extension",
+                                    `Are you sure you want to grant a +30 days free subscription extension to ${sub.landlordName} (${sub.email})?`,
+                                    "warning",
+                                    () => handleGrantDays(sub.id, 30),
+                                    "Confirm +30 Days",
+                                    "Cancel"
+                                  );
+                                }}
+                                title="Grant +30 Days Free"
+                              >
+                                +30d
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-btn-outline"
+                                style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600, color: "#8c5310", borderColor: "#fde68a", background: "#fffbeb" }}
+                                onClick={() => {
+                                  showNotice(
+                                    "Confirm Payment Reminder",
+                                    `Are you sure you want to dispatch a payment and renewal invoice reminder to ${sub.landlordName} (${sub.email})?`,
+                                    "info",
+                                    () => handleSendReminder(sub.email),
+                                    "Send Reminder",
+                                    "Cancel"
+                                  );
+                                }}
+                                title="Send Reminder Email"
+                              >
+                                Remind
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
