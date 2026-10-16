@@ -474,6 +474,59 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
     window.addEventListener("mobin_admin_transactions_updated", handleAdminTxUpdated);
     return () => window.removeEventListener("mobin_admin_transactions_updated", handleAdminTxUpdated);
   }, []);
+
+  // Helper to resolve payment proof screenshot from all stored caches and keys
+  const resolvePaymentProof = (tx) => {
+    if (!tx) return null;
+    if (tx.proof_image) return tx.proof_image;
+    if (tx.proof_url) return tx.proof_url;
+
+    const ref = (tx.refNo || tx.reference || "").toUpperCase().trim();
+    const id = (tx.id || "").toUpperCase().trim();
+    const email = (tx.payerEmail || tx.user_email || "").toLowerCase().trim();
+
+    try {
+      const proofs = JSON.parse(localStorage.getItem("mobin_payment_proofs") || "{}");
+      if (ref && proofs[ref]) return proofs[ref];
+      if (id && proofs[id]) return proofs[id];
+      if (email && proofs[email]) return proofs[email];
+    } catch (_) {}
+
+    try {
+      const cachedInv = JSON.parse(localStorage.getItem("mobin_invoices") || "[]");
+      const match = cachedInv.find(
+        (i) =>
+          (ref && (i.reference || "").toUpperCase() === ref) ||
+          (id && (i.orNumber || i.id || "").toUpperCase() === id) ||
+          (i.proof_image && (i.user_email || "").toLowerCase() === email)
+      );
+      if (match?.proof_image) return match.proof_image;
+    } catch (_) {}
+
+    try {
+      const cachedPay = JSON.parse(localStorage.getItem("mobin_payments") || "[]");
+      const match = cachedPay.find(
+        (p) =>
+          (ref && (p.reference || p.reference_number || "").toUpperCase() === ref) ||
+          (p.proof_image && (p.user_email || "").toLowerCase() === email)
+      );
+      if (match?.proof_image) return match.proof_image;
+    } catch (_) {}
+
+    try {
+      const cachedAdmin = JSON.parse(localStorage.getItem("mobin_admin_transactions") || "[]");
+      const match = cachedAdmin.find(
+        (t) =>
+          (ref && (t.refNo || t.reference || "").toUpperCase() === ref) ||
+          (id && (t.id || "").toUpperCase() === id) ||
+          (t.proof_image && (t.payerEmail || "").toLowerCase() === email)
+      );
+      if (match?.proof_image) return match.proof_image;
+    } catch (_) {}
+
+    return null;
+  };
+
   const [hoveredMonthIndex, setHoveredMonthIndex] = useState(null);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
   const [dashSystemTimeframe, setDashSystemTimeframe] = useState("monthly"); // "monthly" | "weekly"
@@ -1692,6 +1745,52 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
     }
 
     if (dbPayments && dbPayments.length > 0) {
+      // Build proof images lookup map from cached invoices, transactions, and proofs
+      const proofImagesMap = new Map();
+      try {
+        const proofs = JSON.parse(localStorage.getItem("mobin_payment_proofs") || "{}");
+        Object.entries(proofs).forEach(([k, v]) => {
+          if (k && v) proofImagesMap.set(String(k).toUpperCase().trim(), v);
+        });
+      } catch (_) {}
+      try {
+        const cachedAdmin = JSON.parse(localStorage.getItem("mobin_admin_transactions") || "[]");
+        if (Array.isArray(cachedAdmin)) {
+          cachedAdmin.forEach((t) => {
+            if (t.proof_image) {
+              if (t.refNo) proofImagesMap.set(String(t.refNo).toUpperCase().trim(), t.proof_image);
+              if (t.id) proofImagesMap.set(String(t.id).toUpperCase().trim(), t.proof_image);
+              if (t.payerEmail) proofImagesMap.set(String(t.payerEmail).toLowerCase().trim(), t.proof_image);
+            }
+          });
+        }
+      } catch (_) {}
+      try {
+        const cachedInv = JSON.parse(localStorage.getItem("mobin_invoices") || "[]");
+        if (Array.isArray(cachedInv)) {
+          cachedInv.forEach((i) => {
+            if (i.proof_image) {
+              if (i.reference) proofImagesMap.set(String(i.reference).toUpperCase().trim(), i.proof_image);
+              if (i.orNumber) proofImagesMap.set(String(i.orNumber).toUpperCase().trim(), i.proof_image);
+              if (i.id) proofImagesMap.set(String(i.id).toUpperCase().trim(), i.proof_image);
+              if (i.user_email) proofImagesMap.set(String(i.user_email).toLowerCase().trim(), i.proof_image);
+            }
+          });
+        }
+      } catch (_) {}
+      try {
+        const cachedPay = JSON.parse(localStorage.getItem("mobin_payments") || "[]");
+        if (Array.isArray(cachedPay)) {
+          cachedPay.forEach((pay) => {
+            if (pay.proof_image) {
+              if (pay.reference) proofImagesMap.set(String(pay.reference).toUpperCase().trim(), pay.proof_image);
+              if (pay.reference_number) proofImagesMap.set(String(pay.reference_number).toUpperCase().trim(), pay.proof_image);
+              if (pay.user_email) proofImagesMap.set(String(pay.user_email).toLowerCase().trim(), pay.proof_image);
+            }
+          });
+        }
+      } catch (_) {}
+
       const normalized = dbPayments.map((p, idx) => {
         const rawDate = p.created_at || p.paid_at || new Date().toISOString();
         const formattedDate = new Date(rawDate).toLocaleDateString("en-US", {
@@ -1763,6 +1862,18 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
         const refNo = p.reference || p.ref_no || (p.id ? `REF-${p.id.slice(0, 8).toUpperCase()}` : `REF-${String(idx + 100).padStart(4, "0")}`);
         const invoiceId = p.or_number || (p.id && p.id.length > 8 ? `INV-${p.id.slice(0, 8).toUpperCase()}` : `INV-2026-${String(idx + 80).padStart(4, "0")}`);
 
+        const cleanRef = (p.reference || p.ref_no || "").toUpperCase().trim();
+        const cleanInv = invoiceId.toUpperCase().trim();
+        const cleanEmail = (payerEmail || userKeyEmail || "").toLowerCase().trim();
+
+        const resolvedProof =
+          p.proof_image ||
+          p.proof_url ||
+          proofImagesMap.get(cleanRef) ||
+          proofImagesMap.get(cleanInv) ||
+          proofImagesMap.get(cleanEmail) ||
+          null;
+
         return {
           id: invoiceId,
           dbId: p.id,
@@ -1776,7 +1887,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
           date: formattedDate,
           rawDate,
           status: p.status === "paid" || p.status === "Completed" ? "Completed" : p.status || "Completed",
-          proof_image: p.proof_image || p.proof_url || null,
+          proof_image: resolvedProof,
         };
       });
 
@@ -7147,26 +7258,33 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                                     ✓ Mark Paid
                                   </button>
                                 )}
-                                {tx.proof_image && (
-                                  <button
-                                    type="button"
-                                    className="admin-btn-outline"
-                                    style={{ padding: "4px 8px", fontSize: "11.5px", fontWeight: 700, background: "#ecfdf5", borderColor: "#a7f3d0", color: "#047857" }}
-                                    onClick={() => setAdminViewingProofUrl(tx.proof_image)}
-                                    title="View Uploaded Payment Proof Screenshot"
-                                  >
-                                    📷 Proof
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  className="admin-btn-outline"
-                                  style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 700, background: "#fcf8f4" }}
-                                  onClick={() => setSelectedReceiptModal(tx)}
-                                  title="View Official Receipt"
-                                >
-                                  👁 Receipt
-                                </button>
+                                {(() => {
+                                  const proofImg = tx.proof_image || resolvePaymentProof(tx);
+                                  return (
+                                    <>
+                                      {proofImg && (
+                                        <button
+                                          type="button"
+                                          className="admin-btn-outline"
+                                          style={{ padding: "4px 8px", fontSize: "11.5px", fontWeight: 700, background: "#ecfdf5", borderColor: "#a7f3d0", color: "#047857" }}
+                                          onClick={() => setAdminViewingProofUrl(proofImg)}
+                                          title="View Uploaded Payment Proof Screenshot"
+                                        >
+                                          📷 Proof
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="admin-btn-outline"
+                                        style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 700, background: "#fcf8f4" }}
+                                        onClick={() => setSelectedReceiptModal({ ...tx, proof_image: proofImg })}
+                                        title="View Official Receipt & Uploaded Screenshot"
+                                      >
+                                        👁 Receipt
+                                      </button>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </td>
                           </tr>
@@ -8650,29 +8768,88 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
                 </div>
               </div>
 
-              {/* Attached Proof of Payment (Admin Inspection) */}
-              {selectedReceiptModal.proof_image && (
-                <div style={{ marginBottom: "18px", background: "#f8faf6", border: "1.5px solid #86efac", borderRadius: "10px", padding: "12px 14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12.5px", fontWeight: 700, color: "#166534", marginBottom: "8px" }}>
-                    <span>📷 Verified Payment Proof Screenshot</span>
-                  </div>
-                  <div
-                    onClick={() => setAdminViewingProofUrl(selectedReceiptModal.proof_image)}
-                    style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", background: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "1px solid #d1fae5", width: "fit-content" }}
-                    title="Click to view full screenshot"
-                  >
-                    <img
-                      src={selectedReceiptModal.proof_image}
-                      alt="Proof"
-                      style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }}
-                    />
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      <span style={{ fontSize: "12.5px", fontWeight: 700, color: "#1e293b" }}>Click to enlarge screenshot</span>
-                      <span style={{ fontSize: "11px", color: "#047857", fontWeight: 600 }}>Attached during landlord checkout</span>
+              {/* Attached Proof of Payment Screenshot */}
+              {(() => {
+                const proofImg = selectedReceiptModal.proof_image || resolvePaymentProof(selectedReceiptModal);
+                return (
+                  <div style={{ marginBottom: "20px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                      <span style={{ fontSize: "11.5px", fontWeight: 800, color: "#7a6e63", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        Attached Proof of Payment
+                      </span>
+                      {proofImg && (
+                        <button
+                          type="button"
+                          onClick={() => setAdminViewingProofUrl(proofImg)}
+                          className="admin-btn-outline"
+                          style={{ padding: "3px 10px", fontSize: "11px", fontWeight: 700, borderColor: "#86efac", color: "#166534", background: "#f0fdf4" }}
+                        >
+                          🔍 Enlarge Full Screen
+                        </button>
+                      )}
                     </div>
+                    {proofImg ? (
+                      <div
+                        style={{
+                          background: "#f8faf6",
+                          border: "1.5px solid #86efac",
+                          borderRadius: "12px",
+                          padding: "12px",
+                        }}
+                      >
+                        <div
+                          onClick={() => setAdminViewingProofUrl(proofImg)}
+                          style={{
+                            cursor: "pointer",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            border: "1px solid #d1fae5",
+                            background: "#ffffff",
+                            maxHeight: "260px",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            padding: "6px",
+                          }}
+                          title="Click to view full screenshot"
+                        >
+                          <img
+                            src={proofImg}
+                            alt="Uploaded Proof Screenshot"
+                            style={{
+                              maxWidth: "100%",
+                              maxHeight: "248px",
+                              objectFit: "contain",
+                              borderRadius: "6px",
+                              display: "block",
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", fontSize: "11px", color: "#047857", fontWeight: 600 }}>
+                          <span>✓ Verified payment screenshot uploaded during checkout</span>
+                          <span style={{ textDecoration: "underline", cursor: "pointer" }} onClick={() => setAdminViewingProofUrl(proofImg)}>
+                            Click to enlarge ↗
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          background: "#fcf8f4",
+                          border: "1px dashed #dcd4cc",
+                          borderRadius: "10px",
+                          padding: "14px",
+                          textAlign: "center",
+                          color: "#8c8075",
+                          fontSize: "12px",
+                        }}
+                      >
+                        <span>📷 No screenshot attached for this payment record (Settled via Ref #{selectedReceiptModal.refNo})</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Official Disclaimers */}
               <p style={{ fontSize: "11px", color: "#a19588", textAlign: "center", margin: "0 0 4px 0", lineHeight: 1.4 }}>

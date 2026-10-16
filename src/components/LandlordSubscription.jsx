@@ -468,6 +468,17 @@ export default function LandlordSubscription({ user }) {
         window.dispatchEvent(new Event("mobin_admin_transactions_updated"));
       } catch (_) {}
 
+      // Save to dedicated payment proofs cache
+      try {
+        if (paymentProofPreview) {
+          const proofs = JSON.parse(localStorage.getItem("mobin_payment_proofs") || "{}");
+          if (refNumber) proofs[refNumber.toUpperCase()] = paymentProofPreview;
+          if (orNum) proofs[orNum.toUpperCase()] = paymentProofPreview;
+          if (landlordEmail) proofs[landlordEmail.toLowerCase()] = paymentProofPreview;
+          localStorage.setItem("mobin_payment_proofs", JSON.stringify(proofs));
+        }
+      } catch (_) {}
+
       // 4. Record to Supabase 'payments' table
       try {
         const isUuid = typeof user?.id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
@@ -489,6 +500,15 @@ export default function LandlordSubscription({ user }) {
         let onlineProofUrl = "";
         if (paymentProofPreview) {
           onlineProofUrl = await uploadImageToCloudinary(paymentProofPreview, "mobin/payment_proofs");
+          if (onlineProofUrl) {
+            try {
+              const proofs = JSON.parse(localStorage.getItem("mobin_payment_proofs") || "{}");
+              if (refNumber) proofs[refNumber.toUpperCase()] = onlineProofUrl;
+              if (orNum) proofs[orNum.toUpperCase()] = onlineProofUrl;
+              if (landlordEmail) proofs[landlordEmail.toLowerCase()] = onlineProofUrl;
+              localStorage.setItem("mobin_payment_proofs", JSON.stringify(proofs));
+            } catch (_) {}
+          }
         }
 
         const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_vr0gcbr";
