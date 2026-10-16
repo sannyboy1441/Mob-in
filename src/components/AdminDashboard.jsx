@@ -2867,7 +2867,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
     return notifs;
   }, [adminProperties, reports, financialTransactions, adminUsers, readAdminNotifs]);
 
-  const handleAdminNotifClick = (item, shouldNavigate = true) => {
+  const handleAdminNotifClick = (item, shouldNavigate = false) => {
     if (!item) return;
     if (!readAdminNotifs.includes(item.id)) {
       const updated = [...readAdminNotifs, item.id];
@@ -2876,7 +2876,7 @@ export default function AdminDashboard({ user, onLogout, onHomeClick, onUpdateUs
         localStorage.setItem("mobin_read_admin_notifs", JSON.stringify(updated));
       } catch (_) {}
     }
-    if (shouldNavigate && item.linkTab && activeTab !== "Notifications") {
+    if (shouldNavigate && item.linkTab) {
       setActiveTab(item.linkTab);
     }
   };

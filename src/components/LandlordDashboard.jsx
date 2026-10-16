@@ -1070,7 +1070,7 @@ export default function LandlordDashboard({ user, onLogout, onHomeClick, onUpdat
     return notifs;
   }, [dashboardProperties, dashboardInquiries, payments, landlordReports, readLandlordNotifs]);
 
-  const handleLandlordNotifClick = (item, shouldNavigate = true) => {
+  const handleLandlordNotifClick = (item, shouldNavigate = false) => {
     if (!item) return;
     if (!readLandlordNotifs.includes(item.id)) {
       const updated = [...readLandlordNotifs, item.id];
@@ -1079,7 +1079,7 @@ export default function LandlordDashboard({ user, onLogout, onHomeClick, onUpdat
         localStorage.setItem(`mobin_read_notifs_${user?.email || "landlord"}`, JSON.stringify(updated));
       } catch (_) {}
     }
-    if (shouldNavigate && item.linkTab && activeTab !== "Notifications") {
+    if (shouldNavigate && item.linkTab) {
       setActiveTab(item.linkTab);
     }
   };
